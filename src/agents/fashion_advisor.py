@@ -42,7 +42,8 @@ class FashionAdvisor:
         self,
         weather_data: Dict,
         wardrobe_candidates: List[Dict],
-        occasion: Optional[str] = "casual"
+        occasion: Optional[str] = "casual",
+        show_missing_warning: bool = True
     ) -> str:
         """
         生成穿搭建议
@@ -51,6 +52,7 @@ class FashionAdvisor:
             weather_data: 天气数据
             wardrobe_candidates: 候选衣物列表
             occasion: 场合（casual/work/interview/date/sports/formal）
+            show_missing_warning: 是否显示缺少衣物的警告提示
         
         返回:
             穿搭建议文本
@@ -95,8 +97,8 @@ class FashionAdvisor:
         for idx, item in enumerate(wardrobe_candidates, 1):
             clothing_info += f"{idx}. {item['name']} - {item['category']} - {item['color']} - {item['material']}\n"
         
-        # 如果缺少关键衣物类型，给出提示
-        if missing_categories:
+        # 如果缺少关键衣物类型，给出提示（仅在 show_missing_warning=True 时）
+        if missing_categories and show_missing_warning:
             suggestion = f"{weather_summary}\n\n"
             suggestion += f"根据您的衣橱情况，当前缺少以下类型的衣物：{', '.join(missing_categories)}\n\n"
             suggestion += "目前您拥有的衣物：\n"
@@ -133,7 +135,7 @@ class FashionAdvisor:
             
             return suggestion
         
-        # 衣物足够，正常生成建议
+        # 衣物足够或不显示警告，直接生成建议
         human_prompt = HumanMessagePromptTemplate.from_template("""
 天气情况：{weather_summary}
 场合需求：{occasion_text}
@@ -171,10 +173,36 @@ class FashionAdvisor:
             wardrobe_candidates = state.get("wardrobe_candidates", [])
             occasion = state.get("occasion", "casual")
             
+            # 检查是否已经提示过缺少衣物（通过查看聊天历史）
+            # 聊天历史包含在 state 中，可能是 "chat_history" 或 "messages"
+            chat_history = state.get("chat_history", [])
+            if not chat_history:
+                chat_history = state.get("messages", [])
+            
+            has_shown_warning = False
+            for msg in chat_history:
+                content = ""
+                
+                # 处理字典格式的消息
+                if isinstance(msg, dict):
+                    content = msg.get("content", "")
+                # 处理 BaseMessage 对象
+                elif hasattr(msg, 'content'):
+                    content = msg.content
+                
+                # 检查是否包含衣物不足的提示关键词
+                if "缺少" in content and "衣物" in content and ("建议您添加" in content or "添加一些" in content):
+                    has_shown_warning = True
+                    break
+            
+            # 如果已经提示过，就不再显示警告
+            show_missing_warning = not has_shown_warning
+            
             final_output = self.generate_outfit_suggestion(
                 weather_data=weather_data,
                 wardrobe_candidates=wardrobe_candidates,
-                occasion=occasion
+                occasion=occasion,
+                show_missing_warning=show_missing_warning
             )
             
             return {**state, "final_output": final_output, "error_info": None}

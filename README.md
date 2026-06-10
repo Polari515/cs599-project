@@ -17,7 +17,7 @@
 ## 技术栈
 
 - **AI IDE**: Trae CN
-- **LLM**: DeepSeek API (deepseek-chat)
+- **LLM**: DeepSeek API (deepseek-flash)
 - **框架**: LangGraph, LangChain
 - **工具**: 和风天气 API
 - **存储**: JSON 文件
