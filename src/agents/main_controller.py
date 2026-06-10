@@ -2,6 +2,7 @@ import os
 import json
 import re
 import uuid
+import logging
 from datetime import datetime
 from typing import Dict, Optional, List
 from langgraph.graph import StateGraph, END
@@ -11,6 +12,24 @@ from models.schemas import AgentState, IntentResult
 from tools.weather import get_weather
 from tools.wardrobe import search_wardrobe, list_wardrobe, add_clothing, delete_clothing, update_clothing
 from agents.fashion_advisor import FashionAdvisor
+
+# 配置 logging，避免输出到 Streamlit 页面
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+logger.propagate = False  # 阻止日志传播到根 logger
+
+# 创建文件处理器
+log_file = os.path.join(os.path.dirname(__file__), 'app.log')
+handler = logging.FileHandler(log_file, encoding='utf-8')
+handler.setLevel(logging.DEBUG)
+
+# 创建格式化器
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+
+# 添加处理器到 logger
+if not logger.handlers:
+    logger.addHandler(handler)
 
 
 class MainController:
@@ -146,16 +165,16 @@ class MainController:
         
         try:
             response = self.llm.invoke(messages)
-            print("\n" + "="*50)
-            print(f"【调试信息】LLM 原始响应: {response.content}")
-            print("="*50)
+            logger.debug("=" * 50)
+            logger.debug(f"LLM 原始响应: {response.content}")
+            logger.debug("=" * 50)
             result = json.loads(response.content)
             
             intent = result.get("intent", "outfit")
             occasion = result.get("occasion")
             city = result.get("city")
-            print(f"【调试信息】意图分类结果: intent={intent}, occasion={occasion}, city={city}")
-            print("="*50 + "\n")
+            logger.debug(f"意图分类结果: intent={intent}, occasion={occasion}, city={city}")
+            logger.debug("=" * 50)
             
             if occasion and occasion not in ["casual", "work", "interview", "date", "sports", "formal"]:
                 occasion = "casual"

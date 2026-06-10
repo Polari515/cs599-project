@@ -149,23 +149,30 @@ with st.form(key="chat_form", clear_on_submit=True):
 
 if submitted:
     if user_input.strip():
-        # 先展示用户输入，提升交互即时反馈。
+        # 1. 记录用户输入
         st.session_state.chat_history.append({"role": "user", "content": user_input.strip()})
-
-        with st.spinner("🤔 思考中..."):
-            try:
-                result = st.session_state.controller.invoke(
-                    user_input.strip(),
-                    st.session_state.chat_history[:-1]
-                )
-                assistant_reply = result.get("final_output", "抱歉，暂时没有生成回复。")
-                st.session_state.chat_history.append({"role": "assistant", "content": assistant_reply})
-                st.rerun()
-            except Exception as e:
-                st.session_state.chat_history.append({"role": "assistant", "content": f"抱歉，发生了错误：{str(e)}"})
-                st.rerun()
+        # 2. 追加一个"思考中"的占位消息
+        st.session_state.chat_history.append({"role": "assistant", "content": "🤔 思考中..."})
+        # 3. 立即 rerun，让页面先渲染出"思考中"提示
+        st.rerun()
     else:
         st.warning("请输入内容")
+
+# 4. 每次页面渲染时，检测最后一条是否为占位消息（即是否需要调用大模型）
+if st.session_state.chat_history and st.session_state.chat_history[-1]["content"] == "🤔 思考中...":
+    # 获取用户的真实输入（倒数第二条）
+    real_input = st.session_state.chat_history[-2]["content"]
+    try:
+        result = st.session_state.controller.invoke(
+            real_input,
+            st.session_state.chat_history[:-2]  # 传给大模型的历史记录，排除占位和当前输入
+        )
+        assistant_reply = result.get("final_output", "抱歉，暂时没有生成回复。")
+    except Exception as e:
+        assistant_reply = f"抱歉，发生了错误：{str(e)}"
+    # 5. 将占位消息替换为真正的回复
+    st.session_state.chat_history[-1] = {"role": "assistant", "content": assistant_reply}
+    st.rerun()
 
 st.markdown('</div>', unsafe_allow_html=True)
 
