@@ -92,6 +92,10 @@ if "controller" not in st.session_state:
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
+if "selected_gender" not in st.session_state:
+    st.session_state.selected_gender = None
+
+
 def init_controller():
     """初始化控制器"""
     load_dotenv()
@@ -113,6 +117,27 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+# 性别选择按钮
+gender_col1, gender_col2, gender_col3 = st.columns(3)
+
+with gender_col1:
+    male_type = "primary" if st.session_state.selected_gender == "male" else "secondary"
+    if st.button("👨 男性", key="male_btn", use_container_width=True, type=male_type):
+        st.session_state.selected_gender = "male"
+        st.rerun()
+
+with gender_col2:
+    female_type = "primary" if st.session_state.selected_gender == "female" else "secondary"
+    if st.button("👩 女性", key="female_btn", use_container_width=True, type=female_type):
+        st.session_state.selected_gender = "female"
+        st.rerun()
+
+with gender_col3:
+    neutral_type = "primary" if st.session_state.selected_gender == "neutral" else "secondary"
+    if st.button("🌈 中性", key="neutral_btn", use_container_width=True, type=neutral_type):
+        st.session_state.selected_gender = "neutral"
+        st.rerun()
+
 # 欢迎消息
 if not st.session_state.chat_history:
     st.markdown("""
@@ -131,8 +156,16 @@ else:
     for message in st.session_state.chat_history:
         role = message.get("role", "assistant")
         content = message.get("content", "")
-        with st.chat_message("user" if role == "user" else "assistant"):
-            st.markdown(content)
+        if role == "system":
+            # 系统消息以特殊样式显示
+            st.markdown(f"""
+            <div style="background-color: #fff3cd; color: #856404; padding: 0.75rem 1rem; border-radius: 0.75rem; margin-bottom: 0.5rem; text-align: center;">
+                {content}
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            with st.chat_message("user" if role == "user" else "assistant"):
+                st.markdown(content)
 
 # 输入区域
 st.markdown('<div class="input-area">', unsafe_allow_html=True)
@@ -149,6 +182,11 @@ with st.form(key="chat_form", clear_on_submit=True):
 
 if submitted:
     if user_input.strip():
+        # 验证性别选择
+        if st.session_state.selected_gender is None:
+            # 在聊天区域显示系统提示消息
+            st.session_state.chat_history.append({"role": "system", "content": "⚠️ 请先选择你的穿搭风格：男性 / 女性 / 中性"})
+            st.rerun()
         # 1. 记录用户输入
         st.session_state.chat_history.append({"role": "user", "content": user_input.strip()})
         # 2. 追加一个"思考中"的占位消息
