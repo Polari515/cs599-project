@@ -27,27 +27,26 @@
 
 ```
 cs599-project/
-├── src/                     # 源代码目录
-│   ├── agents/              # Agent 模块
-│   │   ├── main_controller.py    # 主控 Agent（LangGraph StateGraph）
-│   │   └── fashion_advisor.py    # 时尚顾问 Agent
-│   ├── tools/               # 工具模块
-│   │   ├── weather.py            # 天气查询工具
-│   │   └── wardrobe.py           # 衣橱管理工具
-│   ├── models/              # 数据模型
-│   │   └── schemas.py            # Pydantic/TypedDict 模型
-│   ├── utils/               # 工具函数
-│   │   ├── cache.py              # TTL 缓存
-│   │   └── logger.py             # 日志记录
-│   ├── storage/             # 数据存储（运行时自动创建）
-│   ├── config.py            # 配置管理
-│   └── main.py              # CLI 入口
-├── docs/                    # 项目文档
-│   ├── spec.md              # 技术规格文档
-│   ├── architecture.md      # 架构说明
-│   └── CS599_大作业报告.docx   # 项目报告
-├── .env                     # 环境变量配置
-└── README.md                # 项目说明
+├── .env                      # 环境变量（API Keys）
+├── requirements.txt          # 依赖列表
+├── README.md                 # 项目说明
+└── src/
+    ├── main.py               # CLI 入口
+    ├── web_app.py            # Streamlit 入口（增强版）
+    ├── config.py             # 环境变量与配置
+    ├── agents/
+    │   ├── main_controller.py   # 主控 Agent：LangGraph StateGraph 定义 + 节点函数
+    │   └── fashion_advisor.py   # 时尚顾问 Agent：搭配生成 Prompt + 调用
+    ├── tools/
+    │   ├── weather.py           # 天气工具：和风天气 API + 城市代码转换 + 缓存
+    │   └── wardrobe.py          # 衣橱工具：JSON 读写 + 规则过滤检索
+    ├── models/
+    │   └── schemas.py           # Pydantic / TypedDict 模型定义
+    ├── utils/
+    │   ├── cache.py             # 天气缓存（TTL 10分钟）
+    │   └── logger.py            # 日志记录
+    └── storage/
+        └── wardrobe.json        # 衣橱数据（运行时自动创建）
 ```
 
 ## 环境搭建
@@ -117,12 +116,6 @@ streamlit run src/web_app.py --server.headless true --server.runOnSave true
 - 基于天气和场合的智能推荐
 - 从衣橱中选择合适的衣物
 - 提供搭配理由
-
-## 项目状态
-
-- [x] Proposal
-- [x] MVP
-- [ ] Final
 
 ## 许可证
 

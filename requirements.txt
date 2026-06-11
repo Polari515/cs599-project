@@ -1,3 +1,4 @@
+
 # 智能穿搭助手依赖列表
 
 # LangGraph 和 LangChain
@@ -17,3 +18,6 @@ requests>=2.31.0
 
 # 类型提示
 typing-extensions>=4.0.0
+
+# Web 界面
+streamlit>=1.30.0

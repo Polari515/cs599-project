@@ -1,3 +1,4 @@
+
 # 智能穿搭助手 - 架构蓝图（AI 实现参考）
 
 ## 1. 系统架构
@@ -17,28 +18,29 @@
 ## 2. 代码目录结构
 
 ```markdown
-smart-wardrobe/
-├── main.py                  # CLI 入口
-├── src/
-│   ├── web_app.py           # Streamlit 入口（增强版）
-│   ├── config.py            # 环境变量与配置
-│   ├── agents/
-│   │   ├── main_controller.py   # 主控 Agent：LangGraph StateGraph 定义 + 节点函数
-│   │   └── fashion_advisor.py   # 时尚顾问 Agent：搭配生成 Prompt + 调用
-│   ├── tools/
-│   │   ├── weather.py           # 天气工具：和风天气 API + 城市代码转换 + 缓存
-│   │   └── wardrobe.py          # 衣橱工具：JSON 读写 + 规则过滤检索
-│   ├── models/
-│   │   └── schemas.py           # Pydantic / TypedDict 模型定义
-│   ├── storage/
-│   │   ├── wardrobe.json        # 衣橱数据（运行时自动创建）
-│   │   └── preferences.json     # 偏好数据（增强版预留）
-│   ├── utils/
-│   │   ├── cache.py             # 天气缓存（TTL 10分钟）
-│   │   └── logger.py            # 步骤耗时记录
-│   └── .env                     # 环境变量（API Keys）
-└── requirements.txt
+cs599-project/
+├── .env                      # 环境变量（API Keys）
+├── requirements.txt          # 依赖列表
+├── README.md                 # 项目说明
+└── src/
+    ├── main.py               # CLI 入口
+    ├── web_app.py            # Streamlit 入口（增强版）
+    ├── config.py             # 环境变量与配置
+    ├── agents/
+    │   ├── main_controller.py   # 主控 Agent：LangGraph StateGraph 定义 + 节点函数
+    │   └── fashion_advisor.py   # 时尚顾问 Agent：搭配生成 Prompt + 调用
+    ├── tools/
+    │   ├── weather.py           # 天气工具：和风天气 API + 城市代码转换 + 缓存
+    │   └── wardrobe.py          # 衣橱工具：JSON 读写 + 规则过滤检索
+    ├── models/
+    │   └── schemas.py           # Pydantic / TypedDict 模型定义
+    ├── utils/
+    │   ├── cache.py             # 天气缓存（TTL 10分钟）
+    │   └── logger.py            # 日志记录
+    └── storage/
+        └── wardrobe.json        # 衣橱数据（运行时自动创建）
 ```
+
 ## 3. LangGraph 状态定义
 
 使用 `TypedDict` 定义全局状态对象，所有节点通过该对象共享数据。
@@ -48,13 +50,13 @@ from typing import TypedDict, Optional, List, Dict, Any
 
 class AgentState(TypedDict):
     user_input: str                    # 用户原始输入
-    intent: Optional[str]              # 意图：outfit / weather / wardrobe / preference
+    intent: Optional[str]              # 意图：outfit / weather / wardrobe
     weather_data: Optional[Dict]       # 结构化天气数据
     occasion: Optional[str]           # 场合：casual / work / interview / date / sports / formal
-    wardrobe_candidates: List[Dict]     # 候选衣物列表
-    preferences: Optional[Dict]       # 用户偏好（增强版预留）
+    wardrobe_candidates: List[Dict]    # 候选衣物列表
+    preferences: Optional[Dict]       # 用户偏好（预留）
     final_output: Optional[str]        # 系统最终回复
-    chat_history: List[Dict]            # 多轮对话历史，格式 [{"role": "user", "content": "..."}, ...]
+    chat_history: List[Dict]          # 多轮对话历史，格式 [{"role": "user", "content": "..."}, ...]
     error_info: Optional[str]          # 异常信息
     session_id: str                    # 会话唯一标识
     timestamp: str                     # 请求时间戳
@@ -88,7 +90,7 @@ def search_wardrobe(
     limit: int = 8
 ) -> List[Dict]:
     """
-    基于规则过滤检索衣橱：温度范围匹配 + 场合标签匹配 + 偏好排除。
+    基于规则过滤检索衣橱：温度范围匹配 + 场合标签匹配。
     返回候选衣物列表，每个元素包含 id, name, category, color, material, 
     suitable_temp_min, suitable_temp_max, occasion_tags。
     """
@@ -123,7 +125,7 @@ def update_clothing(clothing_id: str, **kwargs) -> Dict:
 | 节点名                 | 职责                        | 读写状态                                   |
 | ---------------------- | --------------------------- | ------------------------------------------ |
 | `entry_node`           | 接收输入，初始化状态        | 写 `user_input`, `session_id`, `timestamp` |
-| `intent_classifier`    | LLM 意图分类 + 场合提取     | 写 `intent`, `occasion`                    |
+| `intent_classifier`    | LLM 意图分类 + 场合提取     | 写 `intent`, `occasion`, `_city`           |
 | `weather_tool_node`    | 调用天气工具                | 写 `weather_data`                          |
 | `wardrobe_search_node` | 调用衣橱检索                | 写 `wardrobe_candidates`                   |
 | `wardrobe_crud_node`   | 执行衣橱增删改查            | 写 `final_output`（操作结果）              |
@@ -145,15 +147,10 @@ flowchart TD
     subgraph OutfitFlow [穿搭建议链路]
         OutfitWeather[weather_tool_node]
         OutfitSearch[wardrobe_search_node]
-        Check{候选 >= 3?}
-        Degrade[降级策略<br/>放宽场合/温度]
         Advisor[fashion_advisor_node]
         
         OutfitWeather --> OutfitSearch
-        OutfitSearch --> Check
-        Check -->|否| Degrade
-        Degrade --> OutfitSearch
-        Check -->|是| Advisor
+        OutfitSearch --> Advisor
     end
     
     Weather --> Output[output_node]
@@ -174,11 +171,20 @@ flowchart TD
 def route_by_intent(state: AgentState) -> str:
     intent = state.get("intent")
     if intent == "weather":
-        return "weather_tool_node"
+        return "weather"
     elif intent == "wardrobe":
-        return "wardrobe_crud_node"
+        return "wardrobe"
     elif intent == "outfit":
-        return "weather_tool_node"  # 穿搭链路先走天气
+        return "outfit"
+    else:
+        return "error"
+
+def route_after_weather(state: AgentState) -> str:
+    intent = state.get("intent")
+    if intent == "weather":
+        return "output_node"
+    elif intent == "outfit":
+        return "wardrobe_search_node"
     else:
         return "error_handler"
 ```
@@ -191,16 +197,16 @@ def route_by_intent(state: AgentState) -> str:
 
 - **接口**：开发版 / 免费版 REST API
 - **认证**：API Key 通过 `HEWEATHER_KEY` 环境变量注入
-- **城市转换**：内置映射表（主要城市）+ GeoAPI 兜底
+- **城市转换**：内置映射表（主要城市），如 `{"北京": "101010100", "上海": "101020100"}`
 - **缓存**：`utils/cache.py` 实现 TTL 缓存（10 分钟），Key 为城市名
 
 ### 6.2 DeepSeek API
 
 - **接口**：OpenAI 兼容格式 `https://api.deepseek.com/v1/chat/completions`
 - **认证**：`DEEPSEEK_API_KEY` 环境变量
-- **模型**：`deepseek-chat`（DeepSeek-V3）
+- **模型**：`deepseek-v4-flash`（DeepSeek-V4）
 - **温度**：意图分类 0.3（稳定），搭配生成 0.5（合理多样性）
-- **Token 记录**：每次调用记录 input/output tokens 到日志
+- **日志**：每次调用记录到 `app.log` 文件
 
 ---
 
@@ -209,8 +215,8 @@ def route_by_intent(state: AgentState) -> str:
 以用户输入 **"今天下午有个面试，帮我看看穿什么"** 为例：
 
 1. **entry_node**：`user_input` = "今天下午有个面试...", `session_id` = uuid, `timestamp` = now
-2. **intent_classifier**：LLM 识别 `intent` = "outfit", `occasion` = "interview"
-3. **weather_tool_node**：`get_weather("武汉")` → `weather_data` = {temp: 25, condition: "晴", tips: "舒适温度，注意防晒"}
+2. **intent_classifier**：规则匹配识别 `intent` = "outfit", `occasion` = "interview"
+3. **weather_tool_node**：`get_weather("武汉")` → `weather_data` = {temp: 25, condition: "晴", tips: "舒适温度..."}
 4. **wardrobe_search_node**：`search_wardrobe(temp=25, occasion="interview")` → `wardrobe_candidates` = [白衬衫, 深蓝西裤, 黑皮鞋]
 5. **fashion_advisor_node**：LLM 综合天气+候选+场合 → `final_output` = "今天25°C晴天，建议白衬衫+深蓝西裤+黑皮鞋..."
 6. **output_node**：将 `final_output` 追加到 `chat_history`，返回用户
@@ -252,42 +258,49 @@ class BaseWardrobeRetriever(ABC):
     def retrieve(self, temp: int, occasion: str, preferences: Dict) -> List[Dict]: pass
 ```
 
-**当前实现**：`RuleFilterRetriever`（温度范围 + 场合标签 + 偏好排除）
+**当前实现**：`RuleFilterRetriever`（温度范围 + 场合标签）
 **未来扩展**：`VectorRetriever`（Chroma / 语义检索）
 
-### 8.3 工具注册机制
+### 8.3 意图分类优化
+
+当前采用**规则优先 + LLM 兜底**策略：
 
 ```python
-# tools/registry.py
-TOOL_REGISTRY = {}
-
-def register_tool(func):
-    TOOL_REGISTRY[func.__name__] = func
-    return func
-
-# 使用装饰器自动注册
-@register_tool
-def get_weather(city: str): ...
+def _classify_intent_by_rules(user_input: str) -> Optional[Dict]:
+    """规则优先的意图分类，减少LLM依赖"""
+    weather_keywords = ["天气", "温度", "气温", "冷", "热", "晴", "雨", "雪"]
+    wardrobe_keywords = ["添加", "删除", "查看", "衣橱", "衣柜", "修改", "更新", "列表"]
+    outfit_keywords = ["穿什么", "搭配", "建议穿", "怎么穿", "穿搭"]
+    
+    # 优先级：天气查询 > 衣橱管理 > 穿搭建议
+    if any(keyword in normalized for keyword in weather_keywords):
+        return {"intent": "weather", ...}
+    # ... 后续判断
 ```
-
-新增工具只需加 `@register_tool`，主控 Agent 通过注册表发现工具，无需修改路由代码。
 
 ---
 
-## 9. AI IDE 实现指令
+## 9. 实现约束
 
-基于以上蓝图，请生成完整的可运行项目：
+基于以上蓝图，实现时需遵循以下约束：
 
-1. **先实现 `models/schemas.py`**：定义 `AgentState` TypedDict 和 `Clothing` Pydantic 模型
-2. **再实现 `tools/weather.py` 和 `tools/wardrobe.py`**：确保工具函数可独立测试
-3. **然后实现 `agents/main_controller.py`**：构建 LangGraph StateGraph，包含所有节点和条件边
-4. **接着实现 `agents/fashion_advisor.py`**：定义搭配生成的 System Prompt，接收 state 返回建议
-5. **最后实现 `main.py`**：CLI 循环，读取用户输入 → 调用 graph.invoke() → 打印回复
-6. **预留 `app.py`**：Streamlit 界面（增强版）
+1. **API Key 管理**：所有 API Key 从 `.env` 读取，代码中不得出现硬编码密钥
+2. **存储初始化**：衣橱 JSON 文件不存在时自动初始化空列表
+3. **意图分类**：优先使用规则匹配，规则无法匹配时才调用 LLM
+4. **JSON 格式**：LLM 意图分类返回必须是可解析的 JSON
+5. **约束生成**：时尚顾问 Agent 的 Prompt 必须约束只能从 `wardrobe_candidates` 中选择衣物
+6. **异常处理**：所有外部调用必须包含异常捕获，返回友好提示
 
-**约束**：
-- 所有 API Key 从 `.env` 读取，代码中不得出现硬编码密钥
-- 衣橱 JSON 文件不存在时自动初始化空列表
-- 意图分类 LLM 调用必须返回可解析的 JSON（如 `{"intent": "outfit", "occasion": "interview"}`）
-- 时尚顾问 Agent 的 Prompt 必须约束：只能从 `wardrobe_candidates` 中选择衣物，禁止编造
+---
 
+## 10. 技术栈版本
+
+| 分类 | 技术 | 版本 | 用途 |
+|-----|------|------|------|
+| LLM | DeepSeek | v4-flash | 意图分类、穿搭生成 |
+| 框架 | LangGraph | >=0.2.0 | Agent编排 |
+| 框架 | LangChain | >=0.2.0 | 工具调用、提示词 |
+| UI | Streamlit | >=1.30.0 | Web界面 |
+| API | 和风天气 | v7 | 天气数据 |
+| 存储 | JSON | - | 衣橱数据 |
+| 语言 | Python | 3.10+ | 开发语言 |
