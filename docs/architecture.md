@@ -19,23 +19,25 @@
 ```markdown
 smart-wardrobe/
 ├── main.py                  # CLI 入口
-├── app.py                   # Streamlit 入口（增强版）
-├── config.py                # 环境变量与配置
-├── agents/
-│   ├── main_controller.py   # 主控 Agent：LangGraph StateGraph 定义 + 节点函数
-│   └── fashion_advisor.py   # 时尚顾问 Agent：搭配生成 Prompt + 调用
-├── tools/
-│   ├── weather.py           # 天气工具：和风天气 API + 城市代码转换 + 缓存
-│   └── wardrobe.py          # 衣橱工具：JSON 读写 + 规则过滤检索
-├── models/
-│   └── schemas.py           # Pydantic / TypedDict 模型定义
-├── storage/
-│   ├── wardrobe.json        # 衣橱数据（运行时自动创建）
-│   └── preferences.json     # 偏好数据（增强版预留）
-├── utils/
-│   ├── cache.py             # 天气缓存（TTL 10分钟）
-│   └── logger.py            # 步骤耗时记录
-└── .env                     # 环境变量（API Keys）
+├── src/
+│   ├── web_app.py           # Streamlit 入口（增强版）
+│   ├── config.py            # 环境变量与配置
+│   ├── agents/
+│   │   ├── main_controller.py   # 主控 Agent：LangGraph StateGraph 定义 + 节点函数
+│   │   └── fashion_advisor.py   # 时尚顾问 Agent：搭配生成 Prompt + 调用
+│   ├── tools/
+│   │   ├── weather.py           # 天气工具：和风天气 API + 城市代码转换 + 缓存
+│   │   └── wardrobe.py          # 衣橱工具：JSON 读写 + 规则过滤检索
+│   ├── models/
+│   │   └── schemas.py           # Pydantic / TypedDict 模型定义
+│   ├── storage/
+│   │   ├── wardrobe.json        # 衣橱数据（运行时自动创建）
+│   │   └── preferences.json     # 偏好数据（增强版预留）
+│   ├── utils/
+│   │   ├── cache.py             # 天气缓存（TTL 10分钟）
+│   │   └── logger.py            # 步骤耗时记录
+│   └── .env                     # 环境变量（API Keys）
+└── requirements.txt
 ```
 ## 3. LangGraph 状态定义
 

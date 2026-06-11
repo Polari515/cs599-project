@@ -75,8 +75,8 @@ HEWEATHER_KEY=your_heweather_api_key_here
 ### 3. 启动步骤
 
 ```bash
-cd src
-python main.py
+cd cs599-project
+streamlit run src/web_app.py --server.headless true --server.runOnSave true
 ```
 
 ## 使用示例
