@@ -22,6 +22,31 @@
 - **工具**: 和风天气 API
 - **存储**: JSON 文件
 - **语言**: Python 3.10+
+- **部署**: 本地运行 / Streamlit Cloud（可选）
+
+## 开源项目引用
+
+本项目使用了以下开源项目，感谢开源社区的贡献：
+
+- **LangGraph** - Agent编排框架
+  - GitHub: https://github.com/langchain-ai/langgraph
+  - License: MIT License
+  
+- **LangChain** - LLM应用开发框架
+  - GitHub: https://github.com/langchain-ai/langchain
+  - License: MIT License
+  
+- **Streamlit** - Web应用框架
+  - GitHub: https://github.com/streamlit/streamlit
+  - License: Apache License 2.0
+  
+- **Pydantic** - 数据验证库
+  - GitHub: https://github.com/pydantic/pydantic
+  - License: MIT License
+  
+- **python-dotenv** - 环境变量管理
+  - GitHub: https://github.com/theskumar/python-dotenv
+  - License: BSD License
 
 ## 目录结构
 
@@ -116,6 +141,12 @@ streamlit run src/web_app.py --server.headless true --server.runOnSave true
 - 基于天气和场合的智能推荐
 - 从衣橱中选择合适的衣物
 - 提供搭配理由
+
+## 项目状态
+
+- [x] Proposal - 项目提案与架构设计
+- [x] MVP - 核心功能实现（v0.1）
+- [x] Final - 最终版本完成
 
 ## 许可证
 
